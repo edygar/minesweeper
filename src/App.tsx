@@ -7,6 +7,7 @@ import {
   createSignal,
   Switch,
   Match,
+  createRenderEffect,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import confetti from "canvas-confetti";
@@ -200,6 +201,34 @@ function App() {
 
   const getState = (row: number, col: number) => game.state[row][col];
 
+  let container: HTMLDivElement | null = null;
+  const moveFocus = (row: number, col: number) => {
+    if (
+      !container ||
+      row < 0 ||
+      col < 0 ||
+      row >= game.field.length ||
+      col >= game.field.length
+    ) {
+      return;
+    }
+
+    const button = (container as HTMLDivElement).childNodes[
+      row * game.field.length + col
+    ];
+    if (button) {
+      (button as HTMLButtonElement).focus();
+    }
+  };
+
+  createRenderEffect(() => {
+    const startFocus = () => {
+      if (document.activeElement === document.body) moveFocus(0, 0);
+    };
+    document.body.addEventListener("keydown", startFocus);
+    onCleanup(() => document.body.removeEventListener("keydown", startFocus));
+  });
+
   return (
     <fieldset class="contents" disabled={game.status !== "playing"}>
       <div class="absolute left-1 top-1 z-10 text-center">
@@ -223,6 +252,9 @@ function App() {
       </div>
       <div class="relative flex h-full w-full flex-1 items-center justify-center">
         <div
+          ref={(el) => {
+            container = el;
+          }}
           class="grid aspect-square"
           style={{
             width: "min(100vw, 100vh)",
@@ -235,7 +267,39 @@ function App() {
                 {(nearbyBombs, col) => (
                   <button
                     type="button"
-                    onClick={() => play(row(), col())}
+                    onKeyDown={(e) => {
+                      switch (e.key) {
+                        case " ":
+                          play(row(), col());
+                          break;
+                        case "f":
+                          flag(row(), col());
+                          break;
+                        case "ArrowUp":
+                        case "k":
+                          moveFocus(row() - 1, col());
+                          break;
+                        case "ArrowDown":
+                        case "j":
+                          moveFocus(row() + 1, col());
+                          break;
+                        case "ArrowLeft":
+                        case "h":
+                          moveFocus(row(), col() - 1);
+                          break;
+                        case "ArrowRight":
+                        case "l":
+                          moveFocus(row(), col() + 1);
+                          break;
+                        default:
+                          return;
+                      }
+                      e.stopPropagation();
+                    }}
+                    onClick={() => {
+                      play(row(), col());
+                      moveFocus(row(), col());
+                    }}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       flag(row(), col());

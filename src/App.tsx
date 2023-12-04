@@ -45,7 +45,7 @@ const diagonal = [
 ];
 
 const surroundings = [...orthogonal, ...diagonal];
-const calcBombsPerSquare = (length: number) => length ** 2 / 10;
+const calcBombsPerSquare = (length: number) => Math.floor(length ** 2 / 10);
 
 const createField = (length: number): GameState => {
   const bombs: Pos[] = [];
@@ -201,7 +201,7 @@ function App() {
   const getState = (row: number, col: number) => game.state[row][col];
 
   return (
-    <fieldset disabled={game.status !== "playing"}>
+    <fieldset class="contents" disabled={game.status !== "playing"}>
       <div class="absolute left-1 top-1 z-10 text-center">
         <select
           class="m-2 block rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
@@ -221,7 +221,7 @@ function App() {
         💣:
         {calcBombsPerSquare(game.field.length)}
       </div>
-      <div class="relative flex h-[100dvh] w-[100dvw] items-center justify-center">
+      <div class="relative flex h-full w-full flex-1 items-center justify-center">
         <div
           class="grid aspect-square"
           style={{

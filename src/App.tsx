@@ -189,7 +189,7 @@ function App() {
                       ...(game.revealed[row()][col()] ||
                       game.state !== "playing"
                         ? {
-                            border: `3px solid #999`,
+                            border: `1px solid #999`,
                             "background-color":
                               state === Infinity &&
                               game.lastReveal?.[0] === row() &&

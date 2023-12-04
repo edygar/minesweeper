@@ -5,6 +5,8 @@ import {
   batch,
   onCleanup,
   createSignal,
+  Switch,
+  Match,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import confetti from "canvas-confetti";
@@ -12,11 +14,12 @@ import confetti from "canvas-confetti";
 const INITIAL_FIELD_SIZE = 10;
 
 type Pos = [number, number];
+type TileState = "hidden" | "revealed" | "flagged";
 type GameState = {
-  state: "playing" | "won" | "lost";
+  status: "playing" | "won" | "lost";
   field: number[][];
   bombs: Pos[];
-  revealed: boolean[][];
+  state: TileState[][];
   lastReveal?: Pos;
 };
 
@@ -44,7 +47,7 @@ const diagonal = [
 const surroundings = [...orthogonal, ...diagonal];
 const calcBombsPerSquare = (length: number) => length ** 2 / 10;
 
-const createField = (length: number) => {
+const createField = (length: number): GameState => {
   const bombs: Pos[] = [];
   const bombsCount = calcBombsPerSquare(length);
   for (let i = 0; i < bombsCount; i++) {
@@ -76,10 +79,10 @@ const createField = (length: number) => {
   );
 
   return {
-    state: "playing",
+    status: "playing",
     field,
     bombs,
-    revealed: Array.from({ length }, () => Array.from({ length }, () => false)),
+    state: Array.from({ length }, () => Array.from({ length }, () => "hidden")),
   } as const;
 };
 
@@ -90,35 +93,36 @@ function App() {
   );
 
   createEffect(() => {
-    if (game.state !== "playing") {
+    if (game.status !== "playing") {
       return;
     }
 
-    const won = game.revealed.every((cols, row) =>
+    const won = game.state.every((cols, row) =>
       cols.every(
-        (isRevealed, col) =>
-          isRevealed || game.bombs.find(([r, c]) => r === row && c === col),
+        (state, col) =>
+          state === "revealed" ||
+          game.bombs.find(([r, c]) => r === row && c === col),
       ),
     );
 
     if (won) {
-      update("state", "won");
+      update("status", "won");
     }
   });
 
   function reveal(row: number, col: number) {
-    update("revealed", row, col, true);
+    update("state", row, col, "revealed");
     if (game.field[row][col] !== 0) {
       return;
     }
 
-    for (const [surRow, surCol] of orthogonal) {
+    for (const [surRow, surCol] of surroundings) {
       if (
         surRow + row >= 0 &&
         surCol + col >= 0 &&
         surRow + row < game.field.length &&
         surCol + col < game.field.length &&
-        !game.revealed[row + surRow][col + surCol]
+        game.state[row + surRow][col + surCol] === "hidden"
       ) {
         const next = game.field[row + surRow][col + surCol];
         switch (next) {
@@ -128,14 +132,14 @@ function App() {
           case Infinity:
             break;
           default:
-            update("revealed", row + surRow, col + surCol, true);
+            update("state", row + surRow, col + surCol, "revealed");
         }
       }
     }
   }
 
   function play(row: number, col: number) {
-    if (game.revealed[row][col]) {
+    if (game.state[row][col] !== "hidden") {
       return;
     }
 
@@ -143,7 +147,7 @@ function App() {
       update("lastReveal", [row, col]);
 
       if (game.field[row][col] === Infinity) {
-        update("state", "lost");
+        update("status", "lost");
         return;
       }
 
@@ -151,10 +155,20 @@ function App() {
     });
   }
 
+  function flag(row: number, col: number) {
+    update("state", row, col, (state) =>
+      state === "revealed"
+        ? "revealed"
+        : state === "flagged"
+          ? "hidden"
+          : "flagged",
+    );
+  }
+
   let animationFrame: number;
   let confettiTimeout: ReturnType<typeof setTimeout>;
   createEffect(() => {
-    if (game.state !== "won") return;
+    if (game.status !== "won") return;
 
     const end = Date.now() + 1_000;
     function frame() {
@@ -184,8 +198,10 @@ function App() {
     clearTimeout(confettiTimeout);
   });
 
+  const getState = (row: number, col: number) => game.state[row][col];
+
   return (
-    <fieldset disabled={game.state !== "playing"}>
+    <fieldset disabled={game.status !== "playing"}>
       <div class="absolute left-1 top-1 z-10 text-center">
         <select
           class="m-2 block rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
@@ -216,19 +232,24 @@ function App() {
           <For each={game.field}>
             {(rows, row) => (
               <For each={rows}>
-                {(state, col) => (
+                {(nearbyBombs, col) => (
                   <button
+                    type="button"
                     onClick={() => play(row(), col())}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      flag(row(), col());
+                    }}
                     class="border font-bold"
                     style={{
                       "font-size": `min(calc(100% / ${length}vw), calc(100% / ${length}vh)))`,
                       "line-height": "0",
-                      ...(game.revealed[row()][col()] ||
-                      game.state !== "playing"
+                      ...(getState(row(), col()) === "revealed" ||
+                      game.status !== "playing"
                         ? {
                             border: `1px solid #999`,
                             "background-color":
-                              state === Infinity &&
+                              nearbyBombs === Infinity &&
                               game.lastReveal?.[0] === row() &&
                               game.lastReveal[1] === col()
                                 ? "orangered"
@@ -243,12 +264,11 @@ function App() {
                               6: "turquoise",
                               7: "black",
                               8: "gray",
-                            }[state],
+                            }[nearbyBombs],
                           }
                         : {
                             "background-color": "lightgray",
                             border: `3px outset`,
-                            color: "transparent",
                           }),
                     }}
                   >
@@ -260,15 +280,29 @@ function App() {
                         dominant-baseline="middle"
                         text-anchor="middle"
                         font-size="50"
+                        data-state={getState(row(), col())}
+                        data-nearbyBombs={nearbyBombs}
                       >
-                        {state === Infinity
-                          ? game.lastReveal?.[0] === row() &&
+                        <Switch fallback={nearbyBombs}>
+                          <Match
+                            when={
+                              (game.status === "playing" &&
+                                getState(row(), col()) === "hidden") ||
+                              nearbyBombs === 0
+                            }
+                          >
+                            {""}
+                          </Match>
+                          <Match when={getState(row(), col()) === "flagged"}>
+                            🚩
+                          </Match>
+                          <Match when={nearbyBombs === Infinity}>
+                            {game.lastReveal?.[0] === row() &&
                             game.lastReveal[1] === col()
-                            ? "💥"
-                            : "💣"
-                          : state === -1 || state === 0
-                            ? ""
-                            : state}
+                              ? "💥"
+                              : "💣"}
+                          </Match>
+                        </Switch>
                       </text>
                     </svg>
                   </button>
@@ -278,7 +312,7 @@ function App() {
           </For>
         </div>
 
-        <Show when={game.state !== "playing"}>
+        <Show when={game.status !== "playing"}>
           <div
             class="absolute inset-0 grid h-full w-full animate-[1s_fade-in_500ms] place-content-center font-bold opacity-0"
             style={{ "animation-fill-mode": "forwards" }}
@@ -288,7 +322,7 @@ function App() {
           >
             <div>
               <h1 class="my-3 text-center text-6xl text-white [text-shadow:_0_2px_5px_rgba(0,0,0,.5)]">
-                You {game.state.replace(/^./, (c) => c.toUpperCase())}!
+                You {game.status.replace(/^./, (c) => c.toUpperCase())}!
               </h1>
             </div>
           </div>

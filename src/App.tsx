@@ -242,13 +242,11 @@ function App() {
           <For each={LEVELS}>
             {({ label, value }) => (
               <option value={value} selected={value === level()}>
-                {label}
+                {label}: {value}x{value} ⏹️, {calcBombsPerSquare(value)} 💣
               </option>
             )}
           </For>
         </select>
-        💣:
-        {calcBombsPerSquare(game.field.length)}
       </div>
       <div class="relative flex h-full w-full flex-1 items-center justify-center">
         <div

@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.2",
     "solid-js": "^1.7.8"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.6.4",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
     "autoprefixer": "^10.4.16",
@@ -24,6 +26,7 @@
     "tailwindcss": "^3.3.5",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",
+    "vite-plugin-pwa": "^0.17.2",
     "vite-plugin-solid": "^2.7.0"
   }
 }

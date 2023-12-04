@@ -5,7 +5,27 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        "animate-pop": {
+          "0%": {
+            transform: "scale(0.5, 0.5)",
+          },
+          "100%": {
+            transform: "scale(1, 1)",
+          },
+        },
+
+        "fade-in": {
+          "0%": {
+            opacity: 0,
+          },
+          "100%": {
+            opacity: 1,
+          },
+        },
+      },
+    },
   },
   plugins: [],
 }

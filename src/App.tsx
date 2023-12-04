@@ -22,6 +22,7 @@ type GameState = {
   bombs: Pos[];
   state: TileState[][];
   lastReveal?: Pos;
+  flagsCount: number;
   current: Date | null;
   start: Date | null;
 };
@@ -86,6 +87,7 @@ const createField = (length: number): GameState => {
     start: null,
     current: null,
     field,
+    flagsCount: 0,
     bombs,
     state: Array.from({ length }, () => Array.from({ length }, () => "hidden")),
   } as const;
@@ -166,13 +168,16 @@ function App() {
   }
 
   function flag(row: number, col: number) {
-    update("state", row, col, (state) =>
-      state === "revealed"
-        ? "revealed"
-        : state === "flagged"
-          ? "hidden"
-          : "flagged",
-    );
+    const state = getState(row, col);
+    if (game.status === "won" || state === "revealed") return;
+
+    if (state === "flagged") {
+      update("state", row, col, "hidden");
+      update("flagsCount", (c) => c - 1);
+    } else {
+      update("state", row, col, "flagged");
+      update("flagsCount", (c) => c + 1);
+    }
   }
 
   let animationFrame: number;
@@ -277,13 +282,17 @@ function App() {
               )}
             </For>
           </select>
-          <div class="bg-black px-2 text-2xl font-extrabold text-red-600">
-            {game.start
-              ? formatter.format(
-                  new Date(game.current!.getTime() - game.start.getTime()),
-                )
-              : "00:00"}
-          </div>
+          <ul class="grid grid-flow-col gap-6 rounded-lg bg-gray-50 px-2 py-1 font-bold">
+            <li>🚩 {game.flagsCount}</li>
+            <li>
+              ⏰{" "}
+              {game.start
+                ? formatter.format(
+                    new Date(game.current!.getTime() - game.start.getTime()),
+                  )
+                : "00:00"}
+            </li>
+          </ul>
         </div>
         <div class="m-auto flex w-[min(100dvh_-_3.5rem,100dvw)] flex-1 items-center justify-center">
           <div
@@ -395,20 +404,20 @@ function App() {
                           <Switch fallback={nearbyBombs}>
                             <Match
                               when={
+                                game.status === "playing" &&
+                                getState(row(), col()) === "flagged"
+                              }
+                            >
+                              🚩
+                            </Match>
+                            <Match
+                              when={
                                 (game.status === "playing" &&
                                   getState(row(), col()) === "hidden") ||
                                 nearbyBombs === 0
                               }
                             >
                               {""}
-                            </Match>
-                            <Match
-                              when={
-                                game.status === "playing" &&
-                                getState(row(), col()) === "flagged"
-                              }
-                            >
-                              🚩
                             </Match>
                             <Match when={nearbyBombs === Infinity}>
                               <Switch fallback="💣">

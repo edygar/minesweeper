@@ -1,4 +1,11 @@
-import { Show, For, createEffect, batch, onCleanup } from "solid-js";
+import {
+  Show,
+  For,
+  createEffect,
+  batch,
+  onCleanup,
+  createSignal,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 import confetti from "canvas-confetti";
 
@@ -12,6 +19,13 @@ type GameState = {
   revealed: boolean[][];
   lastReveal?: Pos;
 };
+
+const LEVELS = [
+  { label: "Easy", value: 10 },
+  { label: "Medium", value: 15 },
+  { label: "Hard", value: 20 },
+  { label: "Expert", value: 30 },
+];
 
 const orthogonal = [
   [-1, 0],
@@ -31,7 +45,8 @@ const surroundings = [...orthogonal, ...diagonal];
 
 const createField = (length: number) => {
   const bombs: Pos[] = [];
-  for (let i = 0; i < length; i++) {
+  const bombsCount = length ** 2 / 10;
+  for (let i = 0; i < bombsCount; i++) {
     let bombRow: number, bombCol: number;
     do {
       [bombRow, bombCol] = [
@@ -68,6 +83,7 @@ const createField = (length: number) => {
 };
 
 function App() {
+  const [level, setLevel] = createSignal(INITIAL_FIELD_SIZE);
   const [game, update] = createStore<GameState>(
     createField(INITIAL_FIELD_SIZE),
   );
@@ -169,6 +185,25 @@ function App() {
 
   return (
     <fieldset disabled={game.state !== "playing"}>
+      <div class="absolute left-1 top-1 z-10 text-center">
+        <select
+          class="m-2 block rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-500"
+          onInput={({ target: { value } }) => {
+            setLevel(parseInt(value));
+            update(createField(parseInt(value)));
+          }}
+        >
+          <For each={LEVELS}>
+            {({ label, value }) => (
+              <option value={value} selected={value === game.field.length}>
+                {label}
+              </option>
+            )}
+          </For>
+        </select>
+        💣:
+        {Math.floor(level() ** 2 / 10)}
+      </div>
       <div class="relative flex h-[100dvh] w-[100dvw] items-center justify-center">
         <div
           class="grid aspect-square"
@@ -232,7 +267,7 @@ function App() {
             class="absolute inset-0 grid h-full w-full animate-[1s_fade-in_500ms] place-content-center font-bold opacity-0"
             style={{ "animation-fill-mode": "forwards" }}
             onClick={() => {
-              update(createField(INITIAL_FIELD_SIZE));
+              update(createField(game.field.length));
             }}
           >
             <div>

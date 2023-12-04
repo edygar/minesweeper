@@ -7,12 +7,12 @@ import {
   createSignal,
   Switch,
   Match,
-  createRenderEffect,
+  onMount,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import confetti from "canvas-confetti";
 
-const INITIAL_FIELD_SIZE = 10;
+const INITIAL_FIELD_SIZE = 15;
 
 type Pos = [number, number];
 type TileState = "hidden" | "revealed" | "flagged";
@@ -22,6 +22,8 @@ type GameState = {
   bombs: Pos[];
   state: TileState[][];
   lastReveal?: Pos;
+  current: Date | null;
+  start: Date | null;
 };
 
 const LEVELS = [
@@ -81,6 +83,8 @@ const createField = (length: number): GameState => {
 
   return {
     status: "playing",
+    start: null,
+    current: null,
     field,
     bombs,
     state: Array.from({ length }, () => Array.from({ length }, () => "hidden")),
@@ -140,6 +144,11 @@ function App() {
   }
 
   function play(row: number, col: number) {
+    if (game.start === null) {
+      const start = new Date();
+      update({ start, current: start });
+    }
+
     if (game.state[row][col] !== "hidden") {
       return;
     }
@@ -221,176 +230,233 @@ function App() {
     }
   };
 
-  createRenderEffect(() => {
-    const startFocus = () => {
-      if (document.activeElement === document.body) moveFocus(0, 0);
+  onMount(() => {
+    const startFocus = (e: Event & KeyboardEvent) => {
+      if (document.activeElement === document.body && e.key !== "Tab")
+        moveFocus(0, 0);
     };
     document.body.addEventListener("keydown", startFocus);
     onCleanup(() => document.body.removeEventListener("keydown", startFocus));
   });
 
-  return (
-    <fieldset class="contents" disabled={game.status !== "playing"}>
-      <div class="absolute left-1 top-1 z-10 text-center">
-        <select
-          class="m-2 block rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
-          onInput={({ target: { value } }) => {
-            setLevel(parseInt(value));
-            update(createField(parseInt(value)));
-          }}
-        >
-          <For each={LEVELS}>
-            {({ label, value }) => (
-              <option value={value} selected={value === level()}>
-                {label}: {value}x{value} ⏹️, {calcBombsPerSquare(value)} 💣
-              </option>
-            )}
-          </For>
-        </select>
-      </div>
-      <div class="relative flex h-full w-full flex-1 items-center justify-center">
-        <div
-          ref={(el) => {
-            container = el;
-          }}
-          class="grid aspect-square"
-          style={{
-            width: "min(100vw, 100vh)",
-            "grid-template-columns": `repeat(${game.field.length}, 1fr)`,
-          }}
-        >
-          <For each={game.field}>
-            {(rows, row) => (
-              <For each={rows}>
-                {(nearbyBombs, col) => (
-                  <button
-                    type="button"
-                    onKeyDown={(e) => {
-                      switch (e.key) {
-                        case " ":
-                          play(row(), col());
-                          break;
-                        case "f":
-                          flag(row(), col());
-                          break;
-                        case "ArrowUp":
-                        case "k":
-                          moveFocus(row() - 1, col());
-                          break;
-                        case "ArrowDown":
-                        case "j":
-                          moveFocus(row() + 1, col());
-                          break;
-                        case "ArrowLeft":
-                        case "h":
-                          moveFocus(row(), col() - 1);
-                          break;
-                        case "ArrowRight":
-                        case "l":
-                          moveFocus(row(), col() + 1);
-                          break;
-                        default:
-                          return;
-                      }
-                      e.stopPropagation();
-                    }}
-                    onClick={() => {
-                      play(row(), col());
-                      moveFocus(row(), col());
-                    }}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      flag(row(), col());
-                    }}
-                    class="border font-bold"
-                    style={{
-                      "font-size": `min(calc(100% / ${length}vw), calc(100% / ${length}vh)))`,
-                      "line-height": "0",
-                      ...(getState(row(), col()) === "revealed" ||
-                      game.status !== "playing"
-                        ? {
-                            border: `1px solid #999`,
-                            "background-color":
-                              nearbyBombs === Infinity &&
-                              game.lastReveal?.[0] === row() &&
-                              game.lastReveal[1] === col()
-                                ? "orangered"
-                                : "darkgray",
-                            color: {
-                              "-1": "black",
-                              1: "blue",
-                              2: "green",
-                              3: "red",
-                              4: "purple",
-                              5: "maroon",
-                              6: "turquoise",
-                              7: "black",
-                              8: "gray",
-                            }[nearbyBombs],
-                          }
-                        : {
-                            "background-color": "lightgray",
-                            border: `3px outset`,
-                          }),
-                    }}
-                  >
-                    <svg viewBox="0 0 100 100">
-                      <text
-                        x="50%"
-                        y="50%"
-                        fill="currentColor"
-                        dominant-baseline="middle"
-                        text-anchor="middle"
-                        font-size="50"
-                        data-state={getState(row(), col())}
-                        data-nearbyBombs={nearbyBombs}
-                      >
-                        <Switch fallback={nearbyBombs}>
-                          <Match
-                            when={
-                              (game.status === "playing" &&
-                                getState(row(), col()) === "hidden") ||
-                              nearbyBombs === 0
-                            }
-                          >
-                            {""}
-                          </Match>
-                          <Match when={getState(row(), col()) === "flagged"}>
-                            🚩
-                          </Match>
-                          <Match when={nearbyBombs === Infinity}>
-                            {game.lastReveal?.[0] === row() &&
-                            game.lastReveal[1] === col()
-                              ? "💥"
-                              : "💣"}
-                          </Match>
-                        </Switch>
-                      </text>
-                    </svg>
-                  </button>
-                )}
-              </For>
-            )}
-          </For>
-        </div>
+  let interval: ReturnType<typeof setInterval>;
+  createEffect(() => {
+    if (game.status !== "playing" || game.start === null) {
+      clearTimeout(interval);
+      return;
+    }
 
-        <Show when={game.status !== "playing"}>
-          <div
-            class="absolute inset-0 grid h-full w-full animate-[1s_fade-in_500ms] place-content-center font-bold opacity-0"
-            style={{ "animation-fill-mode": "forwards" }}
-            onClick={() => {
-              update(createField(game.field.length));
+    interval = setInterval(() => {
+      update("current", new Date());
+    }, 1000);
+
+    onCleanup(() => clearInterval(interval));
+  });
+
+  const formatter = new Intl.DateTimeFormat("en", {
+    minute: "numeric",
+    second: "numeric",
+  });
+
+  return (
+    <>
+      <fieldset class="contents" disabled={game.status !== "playing"}>
+        <div class="m-auto flex h-14 w-[min(100dvh_-_3.5rem,100dvw)] items-center justify-between p-2 text-center">
+          <select
+            class="rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
+            onInput={({ target: { value } }) => {
+              setLevel(parseInt(value));
+              update(createField(parseInt(value)));
             }}
           >
-            <div>
-              <h1 class="my-3 text-center text-6xl text-white [text-shadow:_0_2px_5px_rgba(0,0,0,.5)]">
-                You {game.status.replace(/^./, (c) => c.toUpperCase())}!
-              </h1>
-            </div>
+            <For each={LEVELS}>
+              {({ label, value }) => (
+                <option value={value} selected={value === level()}>
+                  {label}: {value}x{value} ⏹️, {calcBombsPerSquare(value)} 💣
+                </option>
+              )}
+            </For>
+          </select>
+          <div class="bg-black px-2 text-2xl font-extrabold text-red-600">
+            {game.start
+              ? formatter.format(
+                  new Date(game.current!.getTime() - game.start.getTime()),
+                )
+              : "00:00"}
           </div>
-        </Show>
-      </div>
-    </fieldset>
+        </div>
+        <div class="m-auto flex w-[min(100dvh_-_3.5rem,100dvw)] flex-1 items-center justify-center">
+          <div
+            ref={(el) => {
+              container = el;
+            }}
+            class="grid aspect-square"
+            style={{
+              width: "min(100vw, 100vh)",
+              "grid-template-columns": `repeat(${game.field.length}, 1fr)`,
+            }}
+          >
+            <For each={game.field}>
+              {(rows, row) => (
+                <For each={rows}>
+                  {(nearbyBombs, col) => (
+                    <button
+                      type="button"
+                      onKeyDown={(e) => {
+                        switch (e.key) {
+                          case " ":
+                            play(row(), col());
+                            break;
+                          case "f":
+                            flag(row(), col());
+                            break;
+                          case "ArrowUp":
+                          case "k":
+                            moveFocus(row() - 1, col());
+                            break;
+                          case "ArrowDown":
+                          case "j":
+                            moveFocus(row() + 1, col());
+                            break;
+                          case "ArrowLeft":
+                          case "h":
+                            moveFocus(row(), col() - 1);
+                            break;
+                          case "ArrowRight":
+                          case "l":
+                            moveFocus(row(), col() + 1);
+                            break;
+                          default:
+                            return;
+                        }
+                        e.stopPropagation();
+                      }}
+                      onClick={() => {
+                        play(row(), col());
+                        moveFocus(row(), col());
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        flag(row(), col());
+                      }}
+                      class="border font-bold"
+                      style={{
+                        "font-size": `min(calc(100% / ${length}vw), calc(100% / ${length}vh)))`,
+                        "line-height": "0",
+                        ...(getState(row(), col()) === "revealed" ||
+                        game.status !== "playing"
+                          ? {
+                              border: `1px solid #999`,
+                              "background-color":
+                                nearbyBombs === Infinity &&
+                                game.lastReveal?.[0] === row() &&
+                                game.lastReveal[1] === col()
+                                  ? "orangered"
+                                  : "darkgray",
+                              color: {
+                                1: "blue",
+                                2: "green",
+                                3: "red",
+                                4: "purple",
+                                5: "maroon",
+                                6: "turquoise",
+                                7: "black",
+                                8: "gray",
+                              }[nearbyBombs],
+                            }
+                          : {
+                              "background-color": "lightgray",
+                              border: `3px outset`,
+                            }),
+                      }}
+                    >
+                      <svg viewBox="0 0 100 100">
+                        {game.status !== "playing" &&
+                          getState(row(), col()) === "flagged" && (
+                            <text
+                              x="50%"
+                              y="50%"
+                              fill="currentColor"
+                              dominant-baseline="middle"
+                              text-anchor="middle"
+                              font-size="80"
+                            >
+                              🚩
+                            </text>
+                          )}
+                        <text
+                          x="50%"
+                          y="50%"
+                          fill="currentColor"
+                          dominant-baseline="middle"
+                          text-anchor="middle"
+                          font-size="50"
+                        >
+                          <Switch fallback={nearbyBombs}>
+                            <Match
+                              when={
+                                (game.status === "playing" &&
+                                  getState(row(), col()) === "hidden") ||
+                                nearbyBombs === 0
+                              }
+                            >
+                              {""}
+                            </Match>
+                            <Match
+                              when={
+                                game.status === "playing" &&
+                                getState(row(), col()) === "flagged"
+                              }
+                            >
+                              🚩
+                            </Match>
+                            <Match when={nearbyBombs === Infinity}>
+                              <Switch fallback="💣">
+                                <Match
+                                  when={
+                                    game.lastReveal?.[0] === row() &&
+                                    game.lastReveal[1] === col()
+                                  }
+                                >
+                                  💥
+                                </Match>
+                                <Match
+                                  when={getState(row(), col()) === "flagged"}
+                                >
+                                  💣
+                                </Match>
+                              </Switch>
+                            </Match>
+                          </Switch>
+                        </text>
+                      </svg>
+                    </button>
+                  )}
+                </For>
+              )}
+            </For>
+          </div>
+        </div>
+      </fieldset>
+      <Show when={game.status !== "playing"}>
+        <button
+          class="absolute inset-0 grid h-full w-full animate-[1s_fade-in_500ms] appearance-none place-content-center bg-none font-bold opacity-0"
+          style={{ "animation-fill-mode": "forwards" }}
+          ref={(el) => {
+            onMount(() => {
+              setTimeout(() => el.focus(), 1000);
+            });
+          }}
+          onClick={() => {
+            update(createField(game.field.length));
+          }}
+        >
+          <span class="my-3 text-center text-6xl text-white [text-shadow:_0_2px_5px_rgba(0,0,0,.5)]">
+            You {game.status.replace(/^./, (c) => c.toUpperCase())}!
+          </span>
+        </button>
+      </Show>
+    </>
   );
 }
 

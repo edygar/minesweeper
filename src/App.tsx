@@ -196,7 +196,7 @@ function App() {
         >
           <For each={LEVELS}>
             {({ label, value }) => (
-              <option value={value} selected={value === game.field.length}>
+              <option value={value} selected={value === level()}>
                 {label}
               </option>
             )}

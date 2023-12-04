@@ -42,10 +42,11 @@ const diagonal = [
 ];
 
 const surroundings = [...orthogonal, ...diagonal];
+const calcBombsPerSquare = (length: number) => length ** 2 / 10;
 
 const createField = (length: number) => {
   const bombs: Pos[] = [];
-  const bombsCount = length ** 2 / 10;
+  const bombsCount = calcBombsPerSquare(length);
   for (let i = 0; i < bombsCount; i++) {
     let bombRow: number, bombCol: number;
     do {
@@ -187,7 +188,7 @@ function App() {
     <fieldset disabled={game.state !== "playing"}>
       <div class="absolute left-1 top-1 z-10 text-center">
         <select
-          class="m-2 block rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-500"
+          class="m-2 block rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
           onInput={({ target: { value } }) => {
             setLevel(parseInt(value));
             update(createField(parseInt(value)));
@@ -202,7 +203,7 @@ function App() {
           </For>
         </select>
         💣:
-        {Math.floor(level() ** 2 / 10)}
+        {calcBombsPerSquare(game.field.length)}
       </div>
       <div class="relative flex h-[100dvh] w-[100dvw] items-center justify-center">
         <div
@@ -220,6 +221,7 @@ function App() {
                     onClick={() => play(row(), col())}
                     class="border font-bold"
                     style={{
+                      "font-size": `min(calc(100% / ${length}vw), calc(100% / ${length}vh)))`,
                       "line-height": "0",
                       ...(game.revealed[row()][col()] ||
                       game.state !== "playing"
@@ -229,7 +231,7 @@ function App() {
                               state === Infinity &&
                               game.lastReveal?.[0] === row() &&
                               game.lastReveal[1] === col()
-                                ? "red"
+                                ? "orangered"
                                 : "darkgray",
                             color: {
                               "-1": "black",
@@ -250,11 +252,25 @@ function App() {
                           }),
                     }}
                   >
-                    {state === Infinity
-                      ? "💣"
-                      : state === -1 || state === 0
-                        ? ""
-                        : state}
+                    <svg viewBox="0 0 100 100">
+                      <text
+                        x="50%"
+                        y="50%"
+                        fill="currentColor"
+                        dominant-baseline="middle"
+                        text-anchor="middle"
+                        font-size="50"
+                      >
+                        {state === Infinity
+                          ? game.lastReveal?.[0] === row() &&
+                            game.lastReveal[1] === col()
+                            ? "💥"
+                            : "💣"
+                          : state === -1 || state === 0
+                            ? ""
+                            : state}
+                      </text>
+                    </svg>
                   </button>
                 )}
               </For>

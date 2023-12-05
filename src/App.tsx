@@ -264,27 +264,42 @@ function App() {
     second: "numeric",
   });
 
+  const restart = () => update(createField(level()));
   let longPress: ReturnType<typeof setTimeout> | boolean = false;
   return (
     <>
       <fieldset class="contents" disabled={game.status !== "playing"}>
-        <div class="m-auto flex h-14 items-center justify-between gap-5 p-2 text-center portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col">
+        <div class="m-auto flex items-stretch justify-between gap-5 p-2 portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col landscape:items-start">
           <select
-            class="h-10 appearance-none rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
+            class="appearance-none rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
             onInput={({ target: { value } }) => {
               setLevel(parseInt(value));
-              update(createField(parseInt(value)));
+              restart();
             }}
           >
             <For each={LEVELS}>
               {({ label, value }) => (
                 <option value={value} selected={value === level()}>
-                  {label}: {value}x{value} ⏹️, {calcBombsPerSquare(value)} 💣
+                  {label}
                 </option>
               )}
             </For>
           </select>
-          <ul class="grid h-10 grid-flow-col items-center gap-6 rounded-lg bg-gray-50 px-2">
+          <button
+            onClick={restart}
+            class="flex appearance-none gap-2 rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500 active:bg-gray-100"
+          >
+            <img
+              class="h-5"
+              src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBVcGxvYWRlZCB0bzogU1ZHIFJlcG8sIHd3dy5zdmdyZXBvLmNvbSwgR2VuZXJhdG9yOiBTVkcgUmVwbyBNaXhlciBUb29scyAtLT4NCjxzdmcgZmlsbD0iIzAwMDAwMCIgaGVpZ2h0PSI4MDBweCIgd2lkdGg9IjgwMHB4IiB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiANCgkgdmlld0JveD0iMCAwIDM4My43NDggMzgzLjc0OCIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8Zz4NCgk8cGF0aCBkPSJNNjIuNzcyLDk1LjA0MkM5MC45MDQsNTQuODk5LDEzNy40OTYsMzAsMTg3LjM0MywzMGM4My43NDMsMCwxNTEuODc0LDY4LjEzLDE1MS44NzQsMTUxLjg3NGgzMA0KCQlDMzY5LjIxNyw4MS41ODgsMjg3LjYyOSwwLDE4Ny4zNDMsMGMtMzUuMDM4LDAtNjkuMDYxLDkuOTg5LTk4LjM5MSwyOC44ODhDNzAuMzY4LDQwLjg2Miw1NC4yNDUsNTYuMDMyLDQxLjIyMSw3My41OTMNCgkJTDIuMDgxLDM0LjY0MXYxMTMuMzY1aDExMy45MUw2Mi43NzIsOTUuMDQyeiIvPg0KCTxwYXRoIGQ9Ik0zODEuNjY3LDIzNS43NDJoLTExMy45MWw1My4yMTksNTIuOTY1Yy0yOC4xMzIsNDAuMTQyLTc0LjcyNCw2NS4wNDItMTI0LjU3MSw2NS4wNDINCgkJYy04My43NDQsMC0xNTEuODc0LTY4LjEzLTE1MS44NzQtMTUxLjg3NGgtMzBjMCwxMDAuMjg2LDgxLjU4OCwxODEuODc0LDE4MS44NzQsMTgxLjg3NGMzNS4wMzgsMCw2OS4wNjItOS45ODksOTguMzkxLTI4Ljg4OA0KCQljMTguNTg0LTExLjk3NSwzNC43MDctMjcuMTQ1LDQ3LjczMS00NC43MDZsMzkuMTM5LDM4Ljk1MlYyMzUuNzQyeiIvPg0KPC9nPg0KPC9zdmc+"
+            />{" "}
+            <span class="portrait:hidden">Restart</span>
+          </button>
+          <ul class="flex gap-6 rounded-lg bg-gray-50 px-2 landscape:flex-col ">
+            <li>
+              ⏹️ {level()}x{level()}
+            </li>
+            <li>💣 {calcBombsPerSquare(level())}</li>
             <li>🚩 {game.flagsCount}</li>
             <li>
               ⏰{" "}
@@ -370,7 +385,7 @@ function App() {
                       onClick={() => {
                         if (longPress === true) {
                           longPress = false;
-                          return
+                          return;
                         }
                         moveFocus(row(), col());
                         play(row(), col());
@@ -489,7 +504,7 @@ function App() {
             });
           }}
           onClick={() => {
-            update(createField(game.field.length));
+            restart();
           }}
         >
           <span class="my-3 text-center text-6xl text-white [text-shadow:_0_2px_5px_rgba(0,0,0,.5)]">

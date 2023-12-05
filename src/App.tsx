@@ -268,9 +268,9 @@ function App() {
   return (
     <>
       <fieldset class="contents" disabled={game.status !== "playing"}>
-        <div class="m-auto flex h-14 w-[min(100dvh_-_3.5rem,100dvw)] items-center justify-between p-2 text-center">
+        <div class="m-auto flex h-14 items-center justify-between gap-5 p-2 text-center portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col">
           <select
-            class="h-10 rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
+            class="h-10 appearance-none rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
             onInput={({ target: { value } }) => {
               setLevel(parseInt(value));
               update(createField(parseInt(value)));
@@ -296,7 +296,7 @@ function App() {
             </li>
           </ul>
         </div>
-        <div class="m-auto flex w-[min(100dvh_-_3.5rem,100dvw)] flex-1 items-center justify-center">
+        <div class="m-auto flex flex-1 items-center justify-center portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:h-[100dvh]">
           <div
             ref={(el) => {
               container = el;

@@ -264,7 +264,7 @@ function App() {
     second: "numeric",
   });
 
-  let longPress: ReturnType<typeof setTimeout> | null = null;
+  let longPress: ReturnType<typeof setTimeout> | boolean = false;
   return (
     <>
       <fieldset class="contents" disabled={game.status !== "playing"}>
@@ -342,15 +342,19 @@ function App() {
                         }
                         e.stopPropagation();
                       }}
-                      onTouchStart={({ currentTarget }) => {
+                      onTouchStart={(e) => {
                         if (getState(row(), col()) === "revealed") return;
-                        clearTimeout(longPress!);
+                        const { currentTarget } = e;
+                        if (longPress !== false && longPress !== true)
+                          clearTimeout(longPress);
+
                         longPress = setTimeout(() => {
                           flag(row(), col());
                           currentTarget.classList.add(
                             "scale-[5]",
                             "translate-y-[-300%]",
                           );
+                          longPress = true;
                           setTimeout(() => {
                             currentTarget.classList.remove(
                               "scale-[5]",
@@ -360,9 +364,14 @@ function App() {
                         }, 250);
                       }}
                       onTouchEnd={() => {
-                        clearTimeout(longPress!);
+                        if (longPress !== false && longPress !== true)
+                          clearTimeout(longPress);
                       }}
                       onClick={() => {
+                        if (longPress === true) {
+                          longPress = false;
+                          return
+                        }
                         moveFocus(row(), col());
                         play(row(), col());
                       }}

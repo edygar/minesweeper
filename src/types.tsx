@@ -5,6 +5,7 @@ export type Tile = {
 };
 export type GameStatus = "idle" | "playing" | "won" | "lost";
 export type GameState = {
+  level: number;
   status: GameStatus;
   tiles: Tile[][];
   bombs: Pos[];

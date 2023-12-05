@@ -174,6 +174,7 @@ function App() {
     if (state === "flagged") {
       update("state", row, col, "hidden");
       update("flagsCount", (c) => c - 1);
+      debugger;
     } else {
       update("state", row, col, "flagged");
       update("flagsCount", (c) => c + 1);
@@ -263,12 +264,13 @@ function App() {
     second: "numeric",
   });
 
+  let longPress: ReturnType<typeof setTimeout> | null = null;
   return (
     <>
       <fieldset class="contents" disabled={game.status !== "playing"}>
         <div class="m-auto flex h-14 w-[min(100dvh_-_3.5rem,100dvw)] items-center justify-between p-2 text-center">
           <select
-            class="rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
+            class="h-10 rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
             onInput={({ target: { value } }) => {
               setLevel(parseInt(value));
               update(createField(parseInt(value)));
@@ -282,7 +284,7 @@ function App() {
               )}
             </For>
           </select>
-          <ul class="grid grid-flow-col gap-6 rounded-lg bg-gray-50 px-2 py-1 font-bold">
+          <ul class="grid h-10 grid-flow-col items-center gap-6 rounded-lg bg-gray-50 px-2">
             <li>🚩 {game.flagsCount}</li>
             <li>
               ⏰{" "}
@@ -340,15 +342,36 @@ function App() {
                         }
                         e.stopPropagation();
                       }}
+                      onTouchStart={({ currentTarget }) => {
+                        if (getState(row(), col()) === "revealed") return;
+                        clearTimeout(longPress!);
+                        longPress = setTimeout(() => {
+                          flag(row(), col());
+                          currentTarget.classList.add(
+                            "scale-[5]",
+                            "translate-y-[-300%]",
+                          );
+                          setTimeout(() => {
+                            currentTarget.classList.remove(
+                              "scale-[5]",
+                              "translate-y-[-300%]",
+                            );
+                          }, 250);
+                        }, 250);
+                      }}
+                      onTouchEnd={() => {
+                        clearTimeout(longPress!);
+                      }}
                       onClick={() => {
-                        play(row(), col());
                         moveFocus(row(), col());
+                        play(row(), col());
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
+                        if (!matchMedia("(pointer:fine)").matches) return;
                         flag(row(), col());
                       }}
-                      class="border font-bold"
+                      class="border font-bold transition-transform duration-200"
                       style={{
                         "font-size": `min(calc(100% / ${length}vw), calc(100% / ${length}vh)))`,
                         "line-height": "0",

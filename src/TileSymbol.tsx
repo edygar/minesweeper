@@ -1,53 +1,74 @@
 import { Switch, Match } from "solid-js";
-import { Tile } from "./types";
 
 export function TileSymbol(props: {
-  playing: boolean;
-  tile: Tile;
-  isLastRevealed: boolean;
+  symbol:
+    | "hidden"
+    | "bomb"
+    | "redFlag"
+    | "greenFlag"
+    | number
+    | "empty"
+    | "flaggedBomb";
 }) {
   return (
     <svg viewBox="0 0 100 100">
-      {!props.playing && props.tile.state === "flagged" && (
-        <text
-          x="50%"
-          y="50%"
-          fill="currentColor"
-          dominant-baseline="middle"
-          text-anchor="middle"
-          font-size="80"
-        >
-          🚩
-        </text>
-      )}
-      <text
-        x="50%"
-        y="50%"
-        fill="currentColor"
-        dominant-baseline="middle"
-        text-anchor="middle"
-        font-size="50"
-      >
-        <Switch fallback={props.tile.nearbyBombs}>
-          <Match when={props.playing && props.tile.state === "flagged"}>
-            🚩
-          </Match>
-          <Match
-            when={
-              (props.playing && props.tile.state === "hidden") ||
-              props.tile.nearbyBombs === 0
-            }
+      <Switch>
+        <Match when={props.symbol === "redFlag"}>
+          <image
+            href="/red-flag.png"
+            height="100"
+            width="100"
+            transform="scale(.6)"
+            transform-origin="50% 50%"
+          />
+        </Match>
+        <Match when={props.symbol === "greenFlag"}>
+          <image
+            href="/green-flag.png"
+            height="100"
+            width="100"
+            transform="scale(.6)"
+            transform-origin="50% 50%"
+          />
+        </Match>
+        <Match when={props.symbol === "flaggedBomb"}>
+          <image
+            href="/bomb.png"
+            height="100"
+            width="100"
+            transform="scale(.4) translate(40 20)"
+            transform-origin="50% 50%"
+          />
+          <image
+            href="/red-flag.png"
+            height="100"
+            width="100"
+            transform="scale(.6)"
+            transform-origin="50% 50%"
+          />
+        </Match>
+        <Match when={props.symbol === "bomb"}>
+          <image
+            href="/bomb.png"
+            height="100"
+            width="100"
+            transform="scale(.6)"
+            transform-origin="50% 50%"
+          />
+        </Match>
+        <Match when={typeof props.symbol === "number"}>
+          <text
+            x="50%"
+            y="50%"
+            fill="currentColor"
+            dominant-baseline="middle"
+            text-anchor="middle"
+            font-size="50"
           >
-            {""}
-          </Match>
-          <Match when={props.tile.nearbyBombs === Infinity}>
-            <Switch fallback="💣">
-              <Match when={props.isLastRevealed}>💥</Match>
-              <Match when={props.tile.state === "flagged"}>💣</Match>
-            </Switch>
-          </Match>
-        </Switch>
-      </text>
+            {props.symbol}
+          </text>
+        </Match>
+      </Switch>
     </svg>
   );
 }

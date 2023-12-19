@@ -1,5 +1,10 @@
 export const INITIAL_FIELD_SIZE = 15;
 
+export const MODES = [
+  { label: "Multi Player", value: "multi-player" },
+  { label: "Single player", value: "single-player" },
+] as const;
+
 export const LEVELS = [
   { label: "Easy", value: 10 },
   { label: "Medium", value: 15 },

@@ -2,7 +2,10 @@ import { GameState, Pos, Tile } from "./types";
 import { SURROUNDINGS } from "./constants";
 
 const calcBombsPerSquare = (length: number) => Math.floor(length ** 2 / 10);
-export const createGame = (level: number): GameState => {
+export const createGame = (
+  level: number,
+  mode: GameState["mode"],
+): GameState => {
   const bombs: Pos[] = [];
   const bombsCount = calcBombsPerSquare(level);
   for (let i = 0; i < bombsCount; i++) {
@@ -26,11 +29,16 @@ export const createGame = (level: number): GameState => {
 
   return {
     level,
+    mode,
+    player: 0,
     status: "idle",
     tiles,
     flagsCount: 0,
     lastRevealed: [-1, -1],
     bombs,
+
+    bombsCountPlayer1: 0,
+    bombsCountPlayer2: 0,
   } as const;
 };
 function countNearbyBombs(bombs: Pos[], row: number, col: number): number {
@@ -78,11 +86,17 @@ export function navigateSafeSurroundings(
   }
 }
 export function hasWon(game: GameState) {
-  return game.tiles.every((cols, row) =>
-    cols.every(
-      ({ state }, col) =>
-        state === "revealed" ||
-        game.bombs.find(([r, c]) => r === row && c === col),
-    ),
+  if (game.mode === "single-player") {
+    return game.tiles.every((cols, row) =>
+      cols.every(
+        ({ state }, col) =>
+          state === "revealed" ||
+          game.bombs.find(([r, c]) => r === row && c === col),
+      ),
+    );
+  }
+
+  return game.bombs.every(
+    ([row, col]) => game.tiles[row][col].state === "revealed",
   );
 }

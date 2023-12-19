@@ -1,20 +1,29 @@
 import { Show, For, createEffect, batch, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
-import { GameState } from "./types";
-import { NEARBY_BOMBS_COLORS, INITIAL_FIELD_SIZE, LEVELS } from "./constants";
+import { GameState, Tile } from "./types";
+import {
+  NEARBY_BOMBS_COLORS,
+  INITIAL_FIELD_SIZE,
+  LEVELS,
+  MODES,
+} from "./constants";
 import { TileSymbol } from "./TileSymbol";
 import { useConfettiOnVictory } from "./useConfettiOnVictory";
 import { useTimer } from "./useTimer";
 import { createGame, hasWon, navigateSafeSurroundings } from "./engine";
 
 function App() {
-  let container: HTMLDivElement | null = null;
+  let container: HTMLFieldSetElement | null = null;
   let longPress: ReturnType<typeof setTimeout> | boolean = false;
 
-  const [game, update] = createStore<GameState>(createGame(INITIAL_FIELD_SIZE));
+  const [game, update] = createStore<GameState>(
+    createGame(INITIAL_FIELD_SIZE, "single-player"),
+  );
 
-  const startNewGame = (level: number = game.level) =>
-    update(createGame(level));
+  const startNewGame = (
+    level: number = game.level,
+    mode: GameState["mode"] = game.mode,
+  ) => update(createGame(level, mode));
 
   const hasFinished = () => game.status !== "idle" && game.status !== "playing";
   useConfettiOnVictory(() => game.status === "won");
@@ -43,10 +52,22 @@ function App() {
       update("lastRevealed", [row, col]);
 
       if (game.tiles[row][col].nearbyBombs === Infinity) {
-        update("status", "lost");
+        if (game.mode === "single-player") {
+          update("status", "lost");
+        } else {
+          update("tiles", row, col, "state", "revealed");
+          update("tiles", row, col, "player", game.player);
+          update(
+            game.player === 0 ? "bombsCountPlayer1" : "bombsCountPlayer2",
+            (bombs) => bombs + 1,
+          );
+        }
         return;
       }
 
+      if (game.mode === "multi-player") {
+        update("player", (player) => (player === 1 ? 0 : 1));
+      }
       navigateSafeSurroundings(game.tiles, row, col, (r, c) => {
         update("tiles", r, c, "state", "revealed");
       });
@@ -54,6 +75,7 @@ function App() {
   }
 
   function flag(row: number, col: number) {
+    if (game.mode === "multi-player") return;
     if (game.status === "idle") {
       update("status", "playing");
     }
@@ -81,7 +103,7 @@ function App() {
       return;
     }
 
-    const button = (container as HTMLDivElement).childNodes[
+    const button = container.childNodes[
       row * game.level + col
     ];
     if (button) {
@@ -98,10 +120,53 @@ function App() {
     onCleanup(() => document.body.removeEventListener("keydown", startFocus));
   });
 
+  function getSymbol(tile: Tile) {
+    if (game.status === "playing" || game.status === "idle") {
+      if (tile.state === "revealed") {
+        switch (tile.nearbyBombs) {
+          case 0:
+            return "empty";
+          case Infinity:
+            return game.mode === "multi-player"
+              ? tile.player === 0
+                ? "redFlag"
+                : "greenFlag"
+              : "bomb";
+          default:
+            return tile.nearbyBombs;
+        }
+      } else if (tile.state === "flagged") {
+        return "redFlag";
+      }
+
+      return "hidden";
+    }
+
+    if (tile.nearbyBombs === Infinity) {
+      if (tile.state === "flagged") {
+        return "flaggedBomb";
+      }
+
+      return game.mode === "multi-player"
+        ? tile.player === 1
+          ? "greenFlag"
+          : "redFlag"
+        : "bomb";
+    }
+
+    if (tile.nearbyBombs === 0) {
+      return "empty";
+    }
+    return tile.nearbyBombs;
+  }
+
   return (
     <>
-      <fieldset class="contents" disabled={hasFinished()}>
-        <div class="m-auto flex items-stretch justify-between gap-5 p-2 portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col landscape:items-start">
+      <div class="contents">
+        <fieldset
+          disabled={hasFinished()}
+          class="m-auto flex flex-wrap items-stretch justify-center gap-5 p-2 portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col landscape:items-start"
+        >
           <select
             class="appearance-none rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
             onInput={({ target: { value } }) => {
@@ -116,29 +181,72 @@ function App() {
               )}
             </For>
           </select>
+          <select
+            class="appearance-none rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"
+            onInput={({ target: { value } }) => {
+              startNewGame(game.level, value as GameState["mode"]);
+            }}
+          >
+            <For each={MODES}>
+              {({ label, value }) => (
+                <option value={value} selected={value === game.mode}>
+                  {label}
+                </option>
+              )}
+            </For>
+          </select>
+          <Show when={game.mode === "multi-player"}>
+            <div class="flex appearance-none gap-2 rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500 active:bg-gray-100">
+              Turn:{" "}
+              <img
+                class="h-[1.5em] w-[1.5em] object-cover"
+                src={game.player === 1 ? "/green-flag.png" : "/red-flag.png"}
+                alt=""
+              />
+            </div>
+          </Show>
           <button
             onClick={() => startNewGame()}
             class="flex appearance-none gap-2 rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500 active:bg-gray-100"
           >
             ↩<span class="portrait:hidden">Restart</span>
           </button>
-          <ul class="flex gap-6 rounded-lg bg-gray-50 px-2 portrait:items-center landscape:flex-col ">
+          <ul class="flex gap-6 rounded-lg bg-gray-50 p-2 portrait:items-center landscape:flex-col ">
             <li>
-              ⏹️ {game.level}x{game.level}
+              <img src="/bomb.png" class="inline-block h-[1.5em]" />{" "}
+              {game.bombs.length}
             </li>
-            <li>💣 {game.bombs.length}</li>
-            <li>🚩 {game.flagsCount}</li>
+            <Show
+              when={game.mode === "multi-player"}
+              fallback={
+                <li>
+                  <img src="/red-flag.png" class="inline-block h-[1.5em]" />{" "}
+                  {game.flagsCount}
+                </li>
+              }
+            >
+              <li>
+                <img src="/red-flag.png" class="inline-block h-[1.5em]" />{" "}
+                {game.bombsCountPlayer1}
+              </li>
+              <li>
+                <img src="/green-flag.png" class="inline-block h-[1.5em]" />{" "}
+                {game.bombsCountPlayer2}
+              </li>
+            </Show>
             <li>⏰ {timer()}</li>
           </ul>
-        </div>
-        <div class="m-auto flex flex-1 items-center justify-center portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:h-[100dvh]">
-          <div
+        </fieldset>
+        <div class="m-auto flex flex-1 items-center justify-center overflow-auto portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:h-[100dvh]">
+          <fieldset
             ref={(el) => {
               container = el;
             }}
+            disabled={hasFinished()}
             class="grid aspect-square"
             style={{
               width: "min(100vw, 100vh)",
+              "min-width": 3 * game.level + "rem",
               "grid-template-columns": `repeat(${game.level}, 1fr)`,
             }}
           >
@@ -220,16 +328,19 @@ function App() {
                           if (!matchMedia("(pointer:fine)").matches) return;
                           flag(row(), col());
                         }}
-                        class="border font-bold transition-transform duration-200"
+                        class="bg-cover bg-center font-bold transition-transform duration-200"
                         style={{
                           ...(tile.state === "revealed" || hasFinished()
                             ? {
-                                border: `1px solid #999`,
-                                "background-color":
+                                "background-image":
                                   tile.nearbyBombs === Infinity &&
+                                  game.mode === "single-player" &&
                                   isLastRevealed()
-                                    ? "orangered"
-                                    : "darkgray",
+                                    ? "url(/red.png)"
+                                    : tile.state === "revealed" ||
+                                        tile.nearbyBombs === 0
+                                      ? "url(/green.png)"
+                                      : "url(/orange.png)",
                                 color:
                                   tile.nearbyBombs in NEARBY_BOMBS_COLORS
                                     ? NEARBY_BOMBS_COLORS[
@@ -238,43 +349,49 @@ function App() {
                                     : "black",
                               }
                             : {
-                                "background-color": "lightgray",
-                                border: `3px outset`,
+                                "background-image": "url(/orange.png)",
                               }),
                         }}
                       >
-                        <TileSymbol
-                          playing={!hasFinished()}
-                          tile={tile}
-                          isLastRevealed={isLastRevealed()}
-                        />
+                        <TileSymbol symbol={getSymbol(tile)} />
                       </button>
                     );
                   }}
                 </For>
               )}
             </For>
-          </div>
+          </fieldset>
+          <Show when={hasFinished()}>
+            <button
+              class="absolute inset-0 grid h-full w-full animate-[1s_fade-in_500ms] appearance-none place-content-center bg-none font-bold opacity-0"
+              style={{ "animation-fill-mode": "forwards" }}
+              ref={(el) => {
+                onMount(() => {
+                  setTimeout(() => el.focus(), 1000);
+                });
+              }}
+              onClick={() => {
+                startNewGame();
+              }}
+            >
+              <span class="my-3 text-center text-6xl text-white [text-shadow:_0_2px_5px_rgba(0,0,0,.5)]">
+                {game.mode === "multi-player" ? (
+                  <img
+                    class="inline-block h-[2em] w-[2em] object-contain"
+                    src={
+                      game.player === 1 ? "/green-flag.png" : "/red-flag.png"
+                    }
+                    alt=""
+                  />
+                ) : (
+                  "You"
+                )}{" "}
+                {game.status.replace(/^./, (c) => c.toUpperCase())}!
+              </span>
+            </button>
+          </Show>
         </div>
-      </fieldset>
-      <Show when={hasFinished()}>
-        <button
-          class="absolute inset-0 grid h-full w-full animate-[1s_fade-in_500ms] appearance-none place-content-center bg-none font-bold opacity-0"
-          style={{ "animation-fill-mode": "forwards" }}
-          ref={(el) => {
-            onMount(() => {
-              setTimeout(() => el.focus(), 1000);
-            });
-          }}
-          onClick={() => {
-            startNewGame();
-          }}
-        >
-          <span class="my-3 text-center text-6xl text-white [text-shadow:_0_2px_5px_rgba(0,0,0,.5)]">
-            You {game.status.replace(/^./, (c) => c.toUpperCase())}!
-          </span>
-        </button>
-      </Show>
+      </div>
     </>
   );
 }

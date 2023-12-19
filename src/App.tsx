@@ -387,7 +387,11 @@ function App() {
                 {game.mode === "multi-player" ? (
                   <img
                     class="inline-block h-[2em] w-[2em] object-contain"
-                    src={game.player === 1 ? redFlag : greenFlag}
+                    src={
+                      game.bombsCountPlayer1 > game.bombsCountPlayer2
+                        ? redFlag
+                        : greenFlag
+                    }
                     alt=""
                   />
                 ) : (

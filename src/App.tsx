@@ -170,7 +170,7 @@ function App() {
       <div class="contents">
         <fieldset
           disabled={hasFinished()}
-          class="m-auto flex flex-wrap items-stretch justify-center gap-5 p-2 portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col landscape:items-start"
+          class="m-auto flex flex-wrap items-stretch justify-center gap-5 overflow-auto p-2 portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:flex-col landscape:items-start"
         >
           <select
             class="appearance-none rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 focus:border-gray-500 focus:ring-gray-500"

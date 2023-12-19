@@ -296,7 +296,11 @@ function App() {
                           e.stopPropagation();
                         }}
                         onTouchStart={(e) => {
-                          if (tile.state === "revealed") return;
+                          if (
+                            tile.state === "revealed" ||
+                            game.mode === "multi-player"
+                          )
+                            return;
                           const { currentTarget } = e;
                           if (longPress !== false && longPress !== true)
                             clearTimeout(longPress);

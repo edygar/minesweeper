@@ -1,3 +1,10 @@
+import greenFlag from "./img/green-flag.png";
+import redFlag from "./img/red-flag.png";
+import bomb from "./img/bomb.png";
+import greenBg from "./img/green.png";
+import orangeBg from "./img/orange.png";
+import redBg from "./img/red.png";
+
 import { Show, For, createEffect, batch, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
 import { GameState, Tile } from "./types";
@@ -10,7 +17,7 @@ import {
 import { TileSymbol } from "./TileSymbol";
 import { useConfettiOnVictory } from "./useConfettiOnVictory";
 import { useTimer } from "./useTimer";
-import { createGame, hasWon, navigateSafeSurroundings } from "./engine";
+import { url, createGame, hasWon, navigateSafeSurroundings } from "./engine";
 
 function App() {
   let container: HTMLFieldSetElement | null = null;
@@ -103,9 +110,7 @@ function App() {
       return;
     }
 
-    const button = container.childNodes[
-      row * game.level + col
-    ];
+    const button = container.childNodes[row * game.level + col];
     if (button) {
       (button as HTMLButtonElement).focus();
     }
@@ -200,7 +205,7 @@ function App() {
               Turn:{" "}
               <img
                 class="h-[1.5em] w-[1.5em] object-cover"
-                src={game.player === 1 ? "/green-flag.png" : "/red-flag.png"}
+                src={game.player === 1 ? greenFlag : redFlag}
                 alt=""
               />
             </div>
@@ -213,24 +218,24 @@ function App() {
           </button>
           <ul class="flex gap-6 rounded-lg bg-gray-50 p-2 portrait:items-center landscape:flex-col ">
             <li>
-              <img src="/bomb.png" class="inline-block h-[1.5em]" />{" "}
+              <img src={bomb} class="inline-block h-[1.5em]" />{" "}
               {game.bombs.length}
             </li>
             <Show
               when={game.mode === "multi-player"}
               fallback={
                 <li>
-                  <img src="/red-flag.png" class="inline-block h-[1.5em]" />{" "}
+                  <img src={redFlag} class="inline-block h-[1.5em]" />{" "}
                   {game.flagsCount}
                 </li>
               }
             >
               <li>
-                <img src="/red-flag.png" class="inline-block h-[1.5em]" />{" "}
+                <img src={redFlag} class="inline-block h-[1.5em]" />{" "}
                 {game.bombsCountPlayer1}
               </li>
               <li>
-                <img src="/green-flag.png" class="inline-block h-[1.5em]" />{" "}
+                <img src={greenFlag} class="inline-block h-[1.5em]" />{" "}
                 {game.bombsCountPlayer2}
               </li>
             </Show>
@@ -336,11 +341,11 @@ function App() {
                                   tile.nearbyBombs === Infinity &&
                                   game.mode === "single-player" &&
                                   isLastRevealed()
-                                    ? "url(/red.png)"
+                                    ? url(redBg)
                                     : tile.state === "revealed" ||
                                         tile.nearbyBombs === 0
-                                      ? "url(/green.png)"
-                                      : "url(/orange.png)",
+                                      ? url(greenBg)
+                                      : url(orangeBg),
                                 color:
                                   tile.nearbyBombs in NEARBY_BOMBS_COLORS
                                     ? NEARBY_BOMBS_COLORS[
@@ -349,7 +354,7 @@ function App() {
                                     : "black",
                               }
                             : {
-                                "background-image": "url(/orange.png)",
+                                "background-image": url(orangeBg),
                               }),
                         }}
                       >
@@ -378,9 +383,7 @@ function App() {
                 {game.mode === "multi-player" ? (
                   <img
                     class="inline-block h-[2em] w-[2em] object-contain"
-                    src={
-                      game.player === 1 ? "/green-flag.png" : "/red-flag.png"
-                    }
+                    src={game.player === 1 ? greenFlag : redFlag}
                     alt=""
                   />
                 ) : (

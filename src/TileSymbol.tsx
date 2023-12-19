@@ -1,5 +1,9 @@
 import { Switch, Match } from "solid-js";
 
+import redFlag from "./img/red-flag.png";
+import greenFlag from "./img/green-flag.png";
+import bomb from "./img/bomb.png";
+
 export function TileSymbol(props: {
   symbol:
     | "hidden"
@@ -15,7 +19,7 @@ export function TileSymbol(props: {
       <Switch>
         <Match when={props.symbol === "redFlag"}>
           <image
-            href="/red-flag.png"
+            href={redFlag}
             height="100"
             width="100"
             transform="scale(.6)"
@@ -24,7 +28,7 @@ export function TileSymbol(props: {
         </Match>
         <Match when={props.symbol === "greenFlag"}>
           <image
-            href="/green-flag.png"
+            href={greenFlag}
             height="100"
             width="100"
             transform="scale(.6)"
@@ -33,14 +37,14 @@ export function TileSymbol(props: {
         </Match>
         <Match when={props.symbol === "flaggedBomb"}>
           <image
-            href="/bomb.png"
+            href={bomb}
             height="100"
             width="100"
             transform="scale(.4) translate(40 20)"
             transform-origin="50% 50%"
           />
           <image
-            href="/red-flag.png"
+            href={redFlag}
             height="100"
             width="100"
             transform="scale(.6)"
@@ -49,7 +53,7 @@ export function TileSymbol(props: {
         </Match>
         <Match when={props.symbol === "bomb"}>
           <image
-            href="/bomb.png"
+            href={bomb}
             height="100"
             width="100"
             transform="scale(.6)"

@@ -1,6 +1,8 @@
 import { GameState, Pos, Tile } from "./types";
 import { SURROUNDINGS } from "./constants";
 
+export const url = (path: string) => `url(${path})`;
+
 const calcBombsPerSquare = (length: number) => Math.floor(length ** 2 / 10);
 export const createGame = (
   level: number,

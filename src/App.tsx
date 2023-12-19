@@ -242,7 +242,7 @@ function App() {
             <li>⏰ {timer()}</li>
           </ul>
         </fieldset>
-        <div class="m-auto flex flex-1 overflow-auto portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:h-[100dvh]">
+        <div class="m-auto flex flex-1 items-center justify-center overflow-auto portrait:w-[min(100dvh_-_3.5rem,100dvw)] landscape:h-[100dvh]">
           <fieldset
             ref={(el) => {
               container = el;
